@@ -1,0 +1,8 @@
+{
+  "body": {
+    "bucket": "dewibucket",
+    "imageName": "dewi.jpeg"
+  }
+}
+
+//curl -X POST -d '{"bucket":"dewibucket","imageName":"dewi.jpeg"}' --url https://rcj9ol2hmb.execute-api.us-east-1.amazonaws.com/dev/analysis
