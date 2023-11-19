@@ -8,6 +8,9 @@ provider:
   runtime: nodejs18.x
   environment:
     DYNAMODB_CUSTOMER_TABLE: ${self:service}-customerTable-${sls:stage}
+  apiGateway:
+    binaryMediaTypes:
+      - 'multipart/form-data'
   iam:
     role:
       statements:
@@ -46,10 +49,43 @@ functions:
       - http:
           path: analysis
           method: post
+  uploadFile:
+    handler: uploadFile.uploadFile
+    events:
+      - http:
+          method: post
+          path: upload
+          cors: true
 
 resources:
   Resources:
-#    DewiBucket:
+    MyServerlessExampleBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: serverlessexampledewi
+
+    # define a policy for an existing role
+#    UploadFilePolicy:
+#      Type: AWS::IAM::Policy
+#      Properties:
+#        PolicyName: UploadObjects
+#        PolicyDocument:
+#          Version: '2012-10-17'
+#          Statement:
+#            - Sid: LambdaPutObjects
+#              Effect: Allow
+#              Action:
+#                - s3:PutObject
+#                - s3:PutObjectTagging
+#              Resource:
+#                Fn::Join:
+#                  - ""
+#                  - - "arn:aws:s3:::"
+#                    - Ref: MyServerlessExampleBucket
+#                    - "/*"
+#        Roles:
+#          - serverless-example-dev-us-east-1-lambdaRole
+    #    DewiBucket:
 #      Type: AWS::S3::Bucket
 #      Properties:
 #        BucketName: dewibucket
@@ -66,14 +102,16 @@ resources:
 #              Resource:
 #                - !Sub "${DewiBucket.Arn}/*"
 #              Principal: "*"
+
+
     CustomerTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        AttributeDefinitions:
-          - AttributeName: primary_key
-            AttributeType: S
-        BillingMode: PAY_PER_REQUEST
-        KeySchema:
-          - AttributeName: primary_key
-            KeyType: HASH
-        TableName: ${self:service}-customerTable-${sls:stage}
+        Type: AWS::DynamoDB::Table
+        Properties:
+          AttributeDefinitions:
+            - AttributeName: primary_key
+              AttributeType: S
+          BillingMode: PAY_PER_REQUEST
+          KeySchema:
+            - AttributeName: primary_key
+              KeyType: HASH
+          TableName: ${self:service}-customerTable-${sls:stage}
