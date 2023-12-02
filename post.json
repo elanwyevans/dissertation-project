@@ -1,10 +1,12 @@
-curl -X POST -d '{"imageName":"test.jpeg"}' --url https://14upy1pqca.execute-api.us-east-1.amazonaws.com/dev/analysis
+curl -X POST -d '{"imageName":"test.jpeg"}' --url https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/analysis
+
 
 curl -vs --progress-bar -X POST \
 -H "Content-Type: multipart/form-data" \
 -F 'file=@test.jpeg' \
 -F 'filename=test.jpeg' \
---url https://14upy1pqca.execute-api.us-east-1.amazonaws.com/dev/upload
+--url https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/upload
+
 
 
 
