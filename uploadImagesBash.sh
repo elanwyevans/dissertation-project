@@ -2,6 +2,7 @@
 
 directory="./imagesToAnalyse"
 imageUploadEndpoint="https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/upload"
+imageAnalysisEndpoint="https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/analysis"
 
 #check if target is not a directory
 if [ ! -d "$directory" ]; then
@@ -14,15 +15,15 @@ for file in "$directory"/*; do
     imageName="$(basename "$file")"
     echo "uploading file $imageName"
 
-#    curl command to upload image to S3 bucket
+#    curl command to trigger uploadFile lambda which uploads image to S3 bucket
     curl --progress-bar -X POST \
     -H "Content-Type: multipart/form-data" \
     -F 'file=@"'$file'"' \
     -F 'filename="'$imageName'"' \
     --url $imageUploadEndpoint
 
-    echo "finishing upload of file $imageName"
-
-    sleep 1
+#    curl command to trigger imageAnalysis lambda which analyses the uploaded image
+    curl -X POST -d '{"imageName":"'$imageName'"}' \
+    --url $imageAnalysisEndpoint
   fi
 done
