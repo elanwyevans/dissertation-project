@@ -67,7 +67,7 @@ resources:
 #      S3 allows storage of media files, like a file storage system on a computer
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: serverlessexampledewi
+        BucketName: drivinglicencephotostoanalyse
 #        stores queryable data
     CustomerTable:
         Type: AWS::DynamoDB::Table

@@ -4,7 +4,7 @@ const queryString = require("querystring");
 const { parseFormData } = require("./lib/common");
 
 const s3Client = new S3()
-const BUCKET_NAME = "serverlessexampledewi"
+const BUCKET_NAME = "drivinglicencephotostoanalyse"
 
 module.exports.uploadFile = async (event) => {
     const { file, fields } = await parseFormData(event)

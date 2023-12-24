@@ -1,8 +1,8 @@
 #!/bin/bash
 
 directory="./imagesToAnalyse"
-imageUploadEndpoint="https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/upload"
-imageAnalysisEndpoint="https://10jx25o96e.execute-api.us-east-1.amazonaws.com/dev/analysis"
+imageUploadEndpoint="https://8spmx75neb.execute-api.us-east-1.amazonaws.com/dev/upload"
+imageAnalysisEndpoint="https://8spmx75neb.execute-api.us-east-1.amazonaws.com/dev/analysis"
 
 #check if target is not a directory
 if [ ! -d "$directory" ]; then
