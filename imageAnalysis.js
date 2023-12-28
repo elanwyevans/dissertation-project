@@ -3,6 +3,9 @@
 const ImageAnalyser = require('./lib/imageAnalyser');
 const AWS = require("aws-sdk");
 const BUCKET_NAME = "drivinglicencephotostoanalyse"
+const UNDETERMINED = "undetermined"
+const REJECTED = "rejected"
+const ACCEPTED = "accepted"
 
 /**
  Analyse an image on S3 using bucket and image name
@@ -16,35 +19,35 @@ module.exports.imageAnalysis = (event) => {
     };
 
     const classifyWithReasons = (labels) => {
-        let classification = "undetermined";
+        let classification = UNDETERMINED;
         let reasons = [];
 
         //Confidence and Value properties
         //[FaceOccluded, EyesOpen, Sunglasses, Eyeglasses, MouthOpen]
 
         const rejectProperty = (property) => () => {
-            classification = "rejected";
+            classification = REJECTED;
             reasons.push(property)
         }
 
-        const underterminedProperty = (property) => () => {
-            if (classification !== "rejected") {
-                classification = "undertermined";
-                reasons.push(property)
+        const undeterminedProperty = (property) => () => {
+            reasons.push(property)
+            if (classification !== REJECTED) {
+                classification = UNDETERMINED;
             }
         }
 
         const lackOfConfidenceOnProperty = (property) => () => {
-            if (classification !== "rejected") {
-                classification = "undetermined";
-                reasons.push(`${property} confidence too low.`)
+            reasons.push(`${property} confidence too low.`)
+            if (classification !== REJECTED) {
+                classification = UNDETERMINED;
             }
         }
 
         const checkFaceDetailsConfidenceByProperty = (property, functionToCallWhenTrue, functionToCallWhenFalse, functionToCallWhenLackOfConfidence) => {
             if (labels.FaceDetails[0][property]) {
 
-                if (labels.FaceDetails[0][property].Confidence >= 99) {
+                if (labels.FaceDetails[0][property].Confidence >= 93) {
 
 
                     if (labels.FaceDetails[0][property].Value === false) {
@@ -54,7 +57,7 @@ module.exports.imageAnalysis = (event) => {
                         functionToCallWhenTrue()
                     }
 
-                } else if (labels.FaceDetails[0][property].Confidence < 99) {
+                } else if (labels.FaceDetails[0][property].Confidence < 93) {
                     functionToCallWhenLackOfConfidence()
                 }
 
@@ -63,82 +66,97 @@ module.exports.imageAnalysis = (event) => {
         }
 
         if (Object.keys(labels).length === 0) {
-            classification = "rejected";
+            classification = REJECTED;
             reasons.push("Technical error. Labels cannot be processed.")
         }
 
         if (labels.FaceDetails.length === 0) {
-            classification = "rejected"
+            classification = REJECTED
             reasons.push("No face detected.")
 
         } else if (labels.FaceDetails.length > 1) {
-            classification = "rejected"
+            classification = REJECTED
             reasons.push("More than 1 face detected.")
         } else if (labels.FaceDetails.length === 1) {
             checkFaceDetailsConfidenceByProperty("FaceOccluded", rejectProperty("Face occluded."), () => {
             }, lackOfConfidenceOnProperty("FaceOccluded"))
-            checkFaceDetailsConfidenceByProperty("Eyeglasses", underterminedProperty("Wearing Eyeglasses."), () => {
+            checkFaceDetailsConfidenceByProperty("Eyeglasses", undeterminedProperty("Wearing Eyeglasses."), () => {
             }, lackOfConfidenceOnProperty("Eyeglasses"))
             checkFaceDetailsConfidenceByProperty("Sunglasses", rejectProperty("Wearing Sunglasses."), () => {
             }, lackOfConfidenceOnProperty("Sunglasses"))
             checkFaceDetailsConfidenceByProperty("MouthOpen", rejectProperty("Mouth is open."), () => {
-            }, lackOfConfidenceOnProperty("MouthOpen"))
+            }, lackOfConfidenceOnProperty("MouthOpen")) //weaker at detecting this with high confidence
             checkFaceDetailsConfidenceByProperty("EyesOpen", () => {
-            }, rejectProperty("Eyes are closed"), lackOfConfidenceOnProperty("EyesOpen"))
+            }, rejectProperty("Eyes are closed"), lackOfConfidenceOnProperty("EyesOpen")) //weaker at detecting this with high confidence
 
             //Emotions
             // ".some" returns true if condition is met or false if it's not
-            if (labels.FaceDetails[0].Emotions.some(emotion => emotion.Type !== "CALM")) {
-                classification = "rejected";
+            if (!labels.FaceDetails[0].Emotions.some(emotion => emotion.Type === "CALM")) {
+                classification = REJECTED;
                 reasons.push("Calm emotion not detected.")
-            } else if (labels.FaceDetails[0].Emotions.some(emotion => emotion.Type === "CALM" && emotion.Confidence < 99)) {
-                classification = "undetermined";
+            } else if (labels.FaceDetails[0].Emotions.some(emotion => emotion.Type === "CALM" && emotion.Confidence < 88)) {
                 reasons.push("Calm emotion confidence too low.")
+                if (classification !== REJECTED) {
+                    classification = UNDETERMINED;
+                }
             }
 
             //EyeDirection
-            if (labels.FaceDetails[0].EyeDirection.Confidence < 99) {
-                classification = "undetermined";
+            if (labels.FaceDetails[0].EyeDirection.Confidence < 98) {
                 reasons.push("EyeDirection confidence too low.")
-            } else if (labels.FaceDetails[0].EyeDirection.Confidence >= 99) {
+                if (classification !== REJECTED) {
+                    classification = UNDETERMINED;
+                }
+            } else if (labels.FaceDetails[0].EyeDirection.Confidence >= 98) {
 
-                if (labels.FaceDetails[0].EyeDirection.Pitch < -3 || labels.FaceDetails[0].EyeDirection.Pitch > 3) {
+                if (labels.FaceDetails[0].EyeDirection.Pitch < -10 || labels.FaceDetails[0].EyeDirection.Pitch > 10) {
 
-                    classification = "rejected";
-                    reasons.push("Eye pitch (vertical axis) outside of range.")
-                } else if (labels.FaceDetails[0].EyeDirection.Yaw < -3 || labels.FaceDetails[0].EyeDirection.Yaw > 3) {
-                    classification = "rejected";
-                    reasons.push("Eye yaw (horizontal axis) outside of range.")
+                    classification = REJECTED;
+                    reasons.push("EyeDirection: Eye pitch (vertical axis) outside of range.")
+                }
+                if (labels.FaceDetails[0].EyeDirection.Yaw < -5 || labels.FaceDetails[0].EyeDirection.Yaw > 5) {
+                    classification = REJECTED;
+                    reasons.push("EyeDirection: Eye yaw (horizontal axis) outside of range.")
                 }
             }
 
             //Pose
-            if (labels.FaceDetails[0].Pose.Pitch < -3 || labels.FaceDetails[0].Pose.Pitch > 3) {
-
-                classification = "rejected";
-                reasons.push("Face pitch (vertical axis) outside of range.")
-            } else if (labels.FaceDetails[0].Pose.Yaw < -3 || labels.FaceDetails[0].Pose.Yaw > 3) {
-                classification = "rejected";
-                reasons.push("Face yaw (horizontal axis) outside of range.")
-            } else if (labels.FaceDetails[0].Pose.Roll < -3 || labels.FaceDetails[0].Pose.Roll > 3) {
-                classification = "rejected";
-                reasons.push("Face roll (tilt) outside of range.")
+            if (labels.FaceDetails[0].Pose.Pitch < -15 || labels.FaceDetails[0].Pose.Pitch > 15) {
+                classification = REJECTED;
+                reasons.push("Pose: Face pitch (vertical axis) outside of range.")
+            }
+            if (labels.FaceDetails[0].Pose.Yaw < -6.5 || labels.FaceDetails[0].Pose.Yaw > 6.5) {
+                classification = REJECTED;
+                reasons.push("Pose: Face yaw (horizontal axis) outside of range.")
+            }
+            if (labels.FaceDetails[0].Pose.Roll < -10 || labels.FaceDetails[0].Pose.Roll > 10) {
+                classification = REJECTED;
+                reasons.push("Pose: Face roll (tilt) outside of range.")
             }
 
             //Image quality
+            //note: rekognition doesnt have a confidence for image quality
             if (labels.FaceDetails[0].Quality.Brightness < 60 || labels.FaceDetails[0].Quality.Brightness > 100) {
-
-                classification = "rejected";
                 reasons.push("Image brightness outside of range.")
-            } else if (labels.FaceDetails[0].Quality.Sharpness < 60 || labels.FaceDetails[0].Quality.Sharpness > 100) {
-                classification = "rejected";
+                if (classification !== REJECTED) {
+                    classification = UNDETERMINED; //not reliable, varies with skin colour,
+                    // 'undetermined' rather than 'reject' as no confidence stat provided
+                    // so should be analysed by a clerk
+                }
+            }
+            if (labels.FaceDetails[0].Quality.Sharpness < 65 || labels.FaceDetails[0].Quality.Sharpness > 110) {
                 reasons.push("Image sharpness outside of range.")
+                if (classification !== REJECTED) {
+                    classification = UNDETERMINED; //not reliable, varies with skin colour,
+                    // 'undetermined' rather than 'reject' as no confidence stat provided
+                    // so should be analysed by a clerk
+                }
             }
 
         }
 
         if (reasons.length === 0) {
-            classification = "accepted";
+            classification = ACCEPTED;
         }
 
         return {classification: classification, reasons: reasons}
