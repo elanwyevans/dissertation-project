@@ -7,7 +7,6 @@ provider:
   name: aws
   runtime: nodejs18.x
   environment:
-    DYNAMODB_CUSTOMER_TABLE: ${self:service}-customerTable-${sls:stage}
     DYNAMODB_PROCESSED_IMAGE_LABEL_TABLE: ${self:service}-processedImageLabelTable-${sls:stage}
   apiGateway:
     binaryMediaTypes:
@@ -23,7 +22,6 @@ provider:
             - 'dynamodb:UpdateItem'
             - 'dynamodb:DeleteItem'
           Resource:
-          - arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:service}-customerTable-${sls:stage}
           - arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:service}-processedImageLabelTable-${sls:stage}
         - Effect: 'Allow'
           Action:
@@ -35,18 +33,6 @@ provider:
           Resource: "*"
 functions:
 #  Lambda functions
-  createCustomer:
-    handler: createCustomer.createCustomer
-    events:
-      - httpApi:
-          path: /
-          method: post
-  getCustomers:
-    handler: getCustomers.getCustomers
-    events:
-      - httpApi:
-          path: /customers
-          method: get
   imageAnalysis:
     handler: imageAnalysis.imageAnalysis
     events:
@@ -63,23 +49,12 @@ functions:
 
 resources:
   Resources:
-    MyServerlessExampleBucket:
+    DrivingLicencePhotosBucket:
 #      S3 allows storage of media files, like a file storage system on a computer
       Type: AWS::S3::Bucket
       Properties:
         BucketName: drivinglicencephotostoanalyse
 #        stores queryable data
-    CustomerTable:
-        Type: AWS::DynamoDB::Table
-        Properties:
-          AttributeDefinitions:
-            - AttributeName: primary_key
-              AttributeType: S
-          BillingMode: PAY_PER_REQUEST
-          KeySchema:
-            - AttributeName: primary_key
-              KeyType: HASH
-          TableName: ${self:service}-customerTable-${sls:stage}
     ProcessedImageLabelTable:
       Type: AWS::DynamoDB::Table
       Properties:
