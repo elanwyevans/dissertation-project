@@ -144,7 +144,7 @@ module.exports.imageAnalysis = (event) => {
                     // so should be analysed by a clerk
                 }
             }
-            if (labels.FaceDetails[0].Quality.Sharpness < 65 || labels.FaceDetails[0].Quality.Sharpness > 100) {
+            if (labels.FaceDetails[0].Quality.Sharpness < 65) {
                 reasons.push("Image sharpness outside of range.")
                 if (classification !== REJECTED) {
                     classification = UNDETERMINED; //not reliable, varies with skin colour,
