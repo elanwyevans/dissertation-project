@@ -1,92 +1,70 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in NodeJS'
-description: 'This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.'
-layout: Doc
-framework: v3
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+# Setting Up Serverless Framework With AWS
 
-# Serverless Framework Node HTTP API on AWS
+## Installation
 
-This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.
+If you don’t already have Node.js on your machine, install it first.
 
-This template does not include any kind of persistence (database). For more advanced examples, check out the [serverless/examples repository](https://github.com/serverless/examples/) which includes Typescript, Mongo, DynamoDB and other examples.
+Install project dependencies via NPM using following command:
 
-## Usage
+```
+npm install
+```
+
+## Setting up AWS credentials
+
+1. Sign in to AWS console
+2. Go to your AWS account overview 
+3. Click on your account name in the upper-right hand corner & select 'Security Credentials'
+4. Select 'create access key' which will create an access key and secret access key
+4. Copy \<Access Key>
+5. Copy \<Secret Access Key>
+6. In terminal in project, execute following command: 
+
+```serverless config credentials --provider aws --key <Access Key> --secret <Secret Access Key>```
+
+As drivinglicencephotostoanalyse S3 bucket already exists globally, you need to change the name to a unique one.
+Change the name to one of your choice in the following files: serverless.yml, imageAnalysis.js and uploadFile.js
+
 
 ### Deployment
 
+Run the following command to deploy the service:
+
 ```
-$ serverless deploy
+serverless deploy
 ```
 
-After deploying, you should see output similar to:
+After deploying, you should see output in the terminal similar to:
 
 ```bash
-Deploying aws-node-http-api-project to stage dev (us-east-1)
+Deploying aws-node-http-api-project to stage dev (us-east-1, "default" provider)
+✔ Your AWS account is now integrated into Serverless Framework Observability
+✔ Serverless Framework Observability is enabled
 
-✔ Service deployed to stack aws-node-http-api-project-dev (152s)
+✔ Service deployed to stack aws-node-http-api-project-dev (93s)
 
-endpoint: GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/
+dashboard: https://app.serverless.com/elanwy/apps/aws-node-http-api-application/aws-node-http-api-project/dev/us-east-1
+endpoints:
+  POST - https://26qa4bf36e.execute-api.us-east-1.amazonaws.com/dev/analysis
+  POST - https://26qa4bf36e.execute-api.us-east-1.amazonaws.com/dev/upload
 functions:
-  hello: aws-node-http-api-project-dev-hello (1.9 kB)
+  imageAnalysis: aws-node-http-api-project-dev-imageAnalysis (46 MB)
+  uploadFile: aws-node-http-api-project-dev-uploadFile (46 MB)
 ```
 
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [http event docs](https://www.serverless.com/framework/docs/providers/aws/events/apigateway/).
 
 ### Invocation
 
-After successful deployment, you can call the created application via HTTP:
-
-```bash
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/
-```
-
-Which should result in response similar to the following (removed `input` content for brevity):
-
-```json
-{
-  "message": "Go Serverless v2.0! Your function executed successfully!",
-  "input": {
-    ...
-  }
-}
-```
-
-### Local development
-
-You can invoke your function locally by using the following command:
-
-```bash
-serverless invoke local --function hello
-```
-
-Which should result in response similar to the following:
+Following deployment, edit the uploadImagesBash.sh file and change the
+the HTTP endpoints that will trigger the Lambda functions e.g:
 
 ```
-{
-  "statusCode": 200,
-  "body": "{\n  \"message\": \"Go Serverless v3.0! Your function executed successfully!\",\n  \"input\": \"\"\n}"
-}
+imageUploadEndpoint="https://26qa4bf36e.execute-api.us-east-1.amazonaws.com/dev/upload"
+imageAnalysisEndpoint="https://26qa4bf36e.execute-api.us-east-1.amazonaws.com/dev/analysis" 
 ```
 
+You can now call the created application 
+via HTTP by running the bash script in the uploadImagesBash.sh file
+using the following command:
 
-Alternatively, it is also possible to emulate API Gateway and Lambda locally by using `serverless-offline` plugin. In order to do that, execute the following command:
-
-```bash
-serverless plugin install -n serverless-offline
-```
-
-It will add the `serverless-offline` plugin to `devDependencies` in `package.json` file as well as will add it to `plugins` in `serverless.yml`.
-
-After installation, you can start local emulation with:
-
-```
-serverless offline
-```
-
-To learn more about the capabilities of `serverless-offline`, please refer to its [GitHub repository](https://github.com/dherault/serverless-offline).
+```uploadImagesBash.sh file```
