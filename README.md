@@ -25,6 +25,7 @@ npm install
 As drivinglicencephotostoanalyse S3 bucket already exists globally, you need to change the name to a unique one.
 Change the name to one of your choice in the following files: serverless.yml, imageAnalysis.js and uploadFile.js
 
+Also in serverless.yml file, change org property value to your account name.
 
 ### Deployment
 
